@@ -91,6 +91,40 @@ router.delete('/cart/:email/remove-checked-items', async (req, res) => {
     }
 });
 
+router.delete('/cart/:email/remove-item/:itemId', async (req, res) => {
+    try {
+        const { email, itemId } = req.params;
+
+        // Find the user's cart by email
+        const cart = await Cart.findOne({ email });
+
+        if (!cart) {
+            return res.status(404).json({ error: 'Cart not found' });
+        }
+
+        // Find the index of the item with matching itemId in the shoeVariations array
+        const itemIndex = cart.shoeVariations.findIndex((item) => item.id === itemId);
+
+        if (itemIndex === -1) {
+            return res.status(404).json({ error: 'Item not found in cart' });
+        }
+
+        // Remove the item from the shoeVariations array
+        const removedItem = cart.shoeVariations.splice(itemIndex, 1)[0];
+
+        // Update the total price by subtracting the removed item's price
+        cart.totalPrice -= removedItem.price;
+
+        // Save the updated cart
+        await cart.save();
+
+        res.json(cart);
+    } catch (error) {
+        console.error('Error deleting item from cart:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 
 // Update item quantity in the cart
 router.put('/update-item-quantity/:email/:itemId', async (req, res) => {
